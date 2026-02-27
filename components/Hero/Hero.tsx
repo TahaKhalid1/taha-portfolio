@@ -62,34 +62,54 @@ const Hero: React.FC = () => {
   useEffect(() => {
     const syncGlobalCounter = async () => {
       try {
-        const namespace = 'taha_khalid_portfolio_v24';
-        const key = 'visits';
-        const localFlag = 'taha_portfolio_visited_v24';
-        const hasVisited = localStorage.getItem(localFlag);
+        const namespace = 'tahakhalid_portfolio_2026';
+        const key = 'unique_visitors';
+        const localFlag = 'taha_portfolio_visited_2026_v2';
+        const hasVisited = sessionStorage.getItem(localFlag);
         
-        // Use a public reliable API that works on all hosting platforms (Vercel, Netlify, etc.)
+        // Use counterapi.dev with a fresh namespace
+        // Changed to sessionStorage so each new browser session counts
         const endpoint = !hasVisited 
           ? `https://api.counterapi.dev/v1/${namespace}/${key}/up`
           : `https://api.counterapi.dev/v1/${namespace}/${key}`;
 
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (data && data.value !== undefined) {
-          // Add a base offset to match your current count if needed, 
-          // or just use the raw value from the fresh namespace.
-          const count = parseInt(data.value);
-          setViewCount(count);
+        if (data && data[key] !== undefined) {
+          // counterapi.dev returns the count in format: { namespace_key: value }
+          const count = parseInt(data[key]);
+          const totalCount = count + 14; // Add the 14 visitors you already had
+          setViewCount(totalCount);
           
           if (!hasVisited) {
-            localStorage.setItem(localFlag, 'true');
+            sessionStorage.setItem(localFlag, 'true');
+          }
+        } else if (data && data.value !== undefined) {
+          // Alternative response format
+          const count = parseInt(data.value);
+          const totalCount = count + 14;
+          setViewCount(totalCount);
+          
+          if (!hasVisited) {
+            sessionStorage.setItem(localFlag, 'true');
           }
         } else {
-          setViewCount("14"); // Fallback to your last known count
+          setViewCount(14); // Fallback
         }
       } catch (error) {
         console.error("Counter Uplink Error:", error);
-        setViewCount("14"); // Fallback to your last known count
+        setViewCount(14); // Fallback
       }
     };
 
