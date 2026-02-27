@@ -64,15 +64,16 @@ const Hero: React.FC = () => {
       try {
         const namespace = 'tahakhalid_portfolio_2026';
         const key = 'unique_visitors';
+        const fullKey = `${namespace}_${key}`; // counterapi returns combined key
         const localFlag = 'taha_portfolio_visited_2026_v2';
         const hasVisited = sessionStorage.getItem(localFlag);
         
-        // Use counterapi.dev with a fresh namespace
-        // Changed to sessionStorage so each new browser session counts
+        // Use counterapi.dev - sessionStorage ensures each new browser session counts
         const endpoint = !hasVisited 
           ? `https://api.counterapi.dev/v1/${namespace}/${key}/up`
           : `https://api.counterapi.dev/v1/${namespace}/${key}`;
 
+        console.log('Fetching counter from:', endpoint);
         const response = await fetch(endpoint, {
           method: 'GET',
           headers: {
@@ -85,27 +86,32 @@ const Hero: React.FC = () => {
         }
         
         const data = await response.json();
+        console.log('Counter API Response:', data);
         
-        if (data && data[key] !== undefined) {
-          // counterapi.dev returns the count in format: { namespace_key: value }
-          const count = parseInt(data[key]);
-          const totalCount = count + 14; // Add the 14 visitors you already had
-          setViewCount(totalCount);
-          
-          if (!hasVisited) {
-            sessionStorage.setItem(localFlag, 'true');
-          }
+        // counterapi.dev returns: { "namespace_key": value }
+        let count = 0;
+        
+        if (data && data[fullKey] !== undefined) {
+          count = parseInt(data[fullKey]);
+        } else if (data && data[key] !== undefined) {
+          count = parseInt(data[key]);
         } else if (data && data.value !== undefined) {
-          // Alternative response format
-          const count = parseInt(data.value);
-          const totalCount = count + 14;
-          setViewCount(totalCount);
-          
-          if (!hasVisited) {
-            sessionStorage.setItem(localFlag, 'true');
+          count = parseInt(data.value);
+        } else if (data && typeof data === 'object') {
+          // Get the first numeric value from the response
+          const values = Object.values(data);
+          const numValue = values.find(v => typeof v === 'number' || !isNaN(Number(v)));
+          if (numValue !== undefined) {
+            count = parseInt(String(numValue));
           }
-        } else {
-          setViewCount(14); // Fallback
+        }
+        
+        const totalCount = count + 14; // Add base count
+        console.log('Setting view count to:', totalCount);
+        setViewCount(totalCount);
+        
+        if (!hasVisited) {
+          sessionStorage.setItem(localFlag, 'true');
         }
       } catch (error) {
         console.error("Counter Uplink Error:", error);
